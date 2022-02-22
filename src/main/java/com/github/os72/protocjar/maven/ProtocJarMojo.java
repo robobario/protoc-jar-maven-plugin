@@ -317,11 +317,16 @@ public class ProtocJarMojo extends AbstractMojo
 	private File tempRoot = null;
 
 	public void execute() throws MojoExecutionException {
+		executeSync();
+	}
+
+
+	private synchronized void executeSync() throws MojoExecutionException {
 		if (project.getPackaging() != null && "pom".equals(project.getPackaging().toLowerCase())) {
 			getLog().info("Skipping 'pom' packaged project");
 			return;
 		}
-		
+
 		if (outputTargets == null || outputTargets.length == 0) {
 			OutputTarget target = new OutputTarget();
 			target.type = type;
@@ -336,31 +341,31 @@ public class ProtocJarMojo extends AbstractMojo
 		}
 
 		boolean missingOutputDirectory = false;
-		
+
 		for (OutputTarget target : outputTargets) {
 			target.addSources = target.addSources.toLowerCase().trim();
 			if ("true".equals(target.addSources)) target.addSources = "main";
-			
+
 			if (target.outputDirectory == null) {
 				String subdir = "generated-" + ("test".equals(target.addSources) ? "test-" : "") + "sources";
 				target.outputDirectory = new File(project.getBuild().getDirectory() + File.separator + subdir + File.separator);
 			}
-			
+
 			if (target.outputDirectorySuffix != null) {
 				target.outputDirectory = new File(target.outputDirectory, target.outputDirectorySuffix);
 			}
-			
+
 			String[] outputFiles = target.outputDirectory.list();
 			if (outputFiles == null || outputFiles.length == 0) {
 				missingOutputDirectory = true;
 			}
 		}
-		
+
 		if (!optimizeCodegen) {
 			performProtoCompilation(true);
 			return;
 		}
-		
+
 		File successFile = new File(project.getBuild().getDirectory(), "pjmp-success.txt");
 		try {
 			long oldestOutputFileTime = minFileTime(outputTargets);
@@ -379,6 +384,7 @@ public class ProtocJarMojo extends AbstractMojo
 			throw new MojoExecutionException("File operation failed: " + successFile, e);
 		}
 	}
+
 
 	private void performProtoCompilation(boolean doCodegen) throws MojoExecutionException {
 		if (doCodegen) prepareProtoc();
